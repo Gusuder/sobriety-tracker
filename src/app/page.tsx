@@ -8,6 +8,14 @@ import { getDayEntry, listDayEntries } from "@/db/dayEntries";
 import { calcBestStreak, calcCurrentStreak } from "@/domain/streak";
 import { CRAVING_OPTIONS, MOOD_OPTIONS, TRIGGERS } from "@/domain/labels";
 import type { TriggerId } from "@/domain/enums";
+import { MotionPage } from "@/components/MotionPage";
+
+const card = "rounded-2xl border border-[var(--border)] bg-white/80 backdrop-blur p-4 shadow-sm";
+const btnPrimary =
+  "rounded-xl bg-[var(--accent)] text-white px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50";
+const btnSoft =
+  "rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-sm transition active:scale-[0.98]";
+const muted = "text-[var(--muted)]";
 
 function labelByValue<T extends string>(opts: { value: T; label: string }[], v: T) {
   return opts.find((o) => o.value === v)?.label ?? v;
@@ -35,7 +43,6 @@ export default function Page() {
 
     const all = await listDayEntries();
     const map = new Map(all.map((e) => [e.dateKey, e] as const));
-
     setCurrentStreak(calcCurrentStreak(map, key));
     setBestStreak(calcBestStreak(all));
   }
@@ -45,7 +52,6 @@ export default function Page() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // UX-минимум: обновляемся, когда возвращаемся в вкладку/окно
   useEffect(() => {
     function onVisibility() {
       if (document.visibilityState === "visible") refresh();
@@ -65,70 +71,79 @@ export default function Page() {
   const checkinHref = today ? `/checkin?date=${key}` : "/checkin";
 
   return (
-    <main className="mx-auto max-w-md p-4 space-y-4">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-bold">Сегодня</h1>
-        <span className="text-xs text-gray-500">{key}</span>
-      </header>
+    <MotionPage>
+      <main className="mx-auto max-w-md p-4 space-y-4">
+        <header className="flex items-baseline justify-between">
+          <h1 className="text-xl font-bold">Сегодня</h1>
+          <span className={`text-xs ${muted}`}>{key}</span>
+        </header>
 
-      <section className="rounded border p-3">
-        <div className="flex justify-between items-center">
-          <div>
-            <div className="text-sm text-gray-500">Стрик</div>
-            <div className="text-2xl font-bold">{currentStreak} дн.</div>
-            <div className="text-xs text-gray-500">Лучший: {bestStreak} дн.</div>
-          </div>
-
-          <Link className="rounded bg-black text-white px-3 py-2 text-sm" href={checkinHref}>
-            {today ? "Редактировать" : "Заполнить"}
-          </Link>
-        </div>
-      </section>
-
-      <section className="rounded border p-3">
-        <div className="text-sm text-gray-500">Статус дня</div>
-
-        {todayStatus === "no-entry" ? (
-          <div className="mt-1">
-            <div className="font-semibold">Записи на сегодня нет</div>
-            <div className="text-sm text-gray-500">Заполни чек-ин — это 30–60 секунд.</div>
-          </div>
-        ) : todayStatus === "sober" ? (
-          <div className="mt-1">
-            <div className="font-semibold">✅ Сегодня трезвый</div>
-            <div className="text-sm text-gray-500">
-              Тяга: {labelByValue(CRAVING_OPTIONS, today!.craving)} · Настроение:{" "}
-              {labelByValue(MOOD_OPTIONS, today!.mood)}
+        <section className={card}>
+          <div className="flex justify-between items-center gap-4">
+            <div>
+              <div className={`text-sm ${muted}`}>Стрик</div>
+              <div className="text-3xl font-bold">{currentStreak} дн.</div>
+              <div className={`text-xs ${muted}`}>Лучший: {bestStreak} дн.</div>
             </div>
-          </div>
-        ) : (
-          <div className="mt-1">
-            <div className="font-semibold">❌ Был алкоголь</div>
-            <div className="text-sm text-gray-500">Мы просто фиксируем факт. Завтра — новый день.</div>
-          </div>
-        )}
 
-        {today && (today.triggers.length > 0 || today.note.trim()) ? (
-          <div className="mt-3 space-y-2">
-            {today.triggers.length > 0 ? (
-              <div className="text-sm">
-                <span className="text-gray-500">Триггеры:</span>{" "}
-                {today.triggers.map(triggerLabel).join(", ")}
+            <Link className={btnPrimary} href={checkinHref}>
+              {today ? "Редактировать" : "Заполнить"}
+            </Link>
+          </div>
+        </section>
+
+        <section className={card}>
+          <div className={`text-sm ${muted}`}>Статус дня</div>
+
+          {todayStatus === "no-entry" ? (
+            <div className="mt-1">
+              <div className="font-semibold">Записи на сегодня нет</div>
+              <div className={`text-sm ${muted}`}>Заполни чек-ин — это 30–60 секунд.</div>
+              <div className="mt-3">
+                <Link className={btnSoft} href={checkinHref}>
+                  Открыть чек-ин
+                </Link>
               </div>
-            ) : null}
-
-            {today.note.trim() ? (
-              <div className="text-sm">
-                <span className="text-gray-500">Заметка:</span> {today.note}
+            </div>
+          ) : todayStatus === "sober" ? (
+            <div className="mt-1">
+              <div className="font-semibold">✅ Сегодня трезвый</div>
+              <div className={`text-sm ${muted}`}>
+                Тяга: {labelByValue(CRAVING_OPTIONS, today!.craving)} · Настроение:{" "}
+                {labelByValue(MOOD_OPTIONS, today!.mood)}
               </div>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
+            </div>
+          ) : (
+            <div className="mt-1">
+              <div className="font-semibold">◼ Был алкоголь</div>
+              <div className={`text-sm ${muted}`}>Мы фиксируем факт. Завтра — новый день.</div>
+            </div>
+          )}
 
-      <Link className="block text-center rounded bg-gray-900 text-white px-3 py-3 font-semibold" href="/crisis">
-        Мне тяжело (кризисный режим)
-      </Link>
-    </main>
+          {today && (today.triggers.length > 0 || today.note.trim()) ? (
+            <div className="mt-3 space-y-2">
+              {today.triggers.length > 0 ? (
+                <div className="text-sm">
+                  <span className={muted}>Триггеры:</span> {today.triggers.map(triggerLabel).join(", ")}
+                </div>
+              ) : null}
+
+              {today.note.trim() ? (
+                <div className="text-sm">
+                  <span className={muted}>Заметка:</span> {today.note}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+
+        <Link
+          className="block text-center rounded-2xl border border-[var(--border)] bg-[var(--accent-weak)] px-4 py-4 font-semibold transition active:scale-[0.99]"
+          href="/crisis"
+        >
+          Мне тяжело (кризисный режим)
+        </Link>
+      </main>
+    </MotionPage>
   );
 }

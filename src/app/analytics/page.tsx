@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { MotionPage } from "@/components/MotionPage";
 import { listDayEntries } from "@/db/dayEntries";
 import { listCrisisSessions } from "@/db/crisisSessions";
 import { computeAnalytics, sinceDateKey, topN, type RangeDays } from "@/domain/analytics";
@@ -14,6 +15,11 @@ function labelByValue<T extends string>(opts: { value: T; label: string }[], v: 
 function triggerLabel(id: TriggerId) {
   return TRIGGERS.find((t) => t.id === id)?.label ?? id;
 }
+
+const card = "rounded-2xl border border-[var(--border)] bg-white/80 backdrop-blur p-4 shadow-sm";
+const pill = "rounded-xl border border-[var(--border)] bg-white px-3 py-2 text-sm transition active:scale-[0.98]";
+const soft = "rounded-xl bg-[var(--accent-weak)] px-3 py-2";
+const muted = "text-[var(--muted)]";
 
 export default function Page() {
   const [range, setRange] = useState<RangeDays>(30);
@@ -37,6 +43,7 @@ export default function Page() {
 
   async function load() {
     setLoading(true);
+
     const all = await listDayEntries();
     const entries = all.filter((e) => e.dateKey >= fromKey);
 
@@ -53,8 +60,9 @@ export default function Page() {
     setTopTriggers(topN(a.triggerCounts, 5));
     setTopTriggersNS(topN(a.triggerCountsNotSober, 5));
 
-    setCravingDist(Object.entries(a.cravingCounts).sort((a, b) => b[1] - a[1]) as any);
-    setMoodDist(Object.entries(a.moodCounts).sort((a, b) => b[1] - a[1]) as any);
+    // типы без any
+    setCravingDist(Object.entries(a.cravingCounts).sort((x, y) => y[1] - x[1]) as [CravingLevel, number][]);
+    setMoodDist(Object.entries(a.moodCounts).sort((x, y) => y[1] - x[1]) as [MoodLevel, number][]);
 
     setCrisisCount(a.crisisCount);
     setCrisisBetter(a.crisisBetter);
@@ -69,123 +77,124 @@ export default function Page() {
   }, [range]);
 
   return (
-    <main className="mx-auto max-w-md p-4 space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Аналитика</h1>
-        <select
-          className="rounded border px-2 py-1 text-sm"
-          value={range}
-          onChange={(e) => setRange(Number(e.target.value) as RangeDays)}
-        >
-          <option value={7}>7 дней</option>
-          <option value={30}>30 дней</option>
-          <option value={90}>90 дней</option>
-        </select>
-      </header>
+    <MotionPage>
+      <main className="mx-auto max-w-md p-4 space-y-4">
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold">Аналитика</h1>
+            <div className={`text-xs ${muted}`}>Период: с {fromKey}</div>
+          </div>
 
-      <div className="text-xs text-gray-500">Период: с {fromKey}</div>
+          <select className={pill} value={range} onChange={(e) => setRange(Number(e.target.value) as RangeDays)}>
+            <option value={7}>7 дней</option>
+            <option value={30}>30 дней</option>
+            <option value={90}>90 дней</option>
+          </select>
+        </header>
 
-      {loading ? (
-        <div className="text-sm text-gray-500">Загрузка…</div>
-      ) : (
-        <>
-          <section className="rounded border p-3">
-            <div className="text-sm text-gray-500">Итоги</div>
-            <div className="mt-1 grid grid-cols-3 gap-2 text-sm">
-              <div className="rounded bg-gray-100 p-2">
-                <div className="text-xs text-gray-500">Дней с записями</div>
-                <div className="text-lg font-semibold">{entriesCount}</div>
+        {loading ? (
+          <div className={`text-sm ${muted}`}>Загрузка…</div>
+        ) : (
+          <>
+            <section className={card}>
+              <div className={`text-sm ${muted}`}>Итоги</div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                <div className={soft}>
+                  <div className={`text-xs ${muted}`}>Дней с записями</div>
+                  <div className="text-lg font-semibold">{entriesCount}</div>
+                </div>
+                <div className={soft}>
+                  <div className={`text-xs ${muted}`}>Трезвых</div>
+                  <div className="text-lg font-semibold">{soberDays}</div>
+                </div>
+                <div className={soft}>
+                  <div className={`text-xs ${muted}`}>Дней с алкоголем</div>
+                  <div className="text-lg font-semibold">{notSoberDays}</div>
+                </div>
               </div>
-              <div className="rounded bg-gray-100 p-2">
-                <div className="text-xs text-gray-500">✅ Трезвых</div>
-                <div className="text-lg font-semibold">{soberDays}</div>
+            </section>
+
+            <section className={card}>
+              <div className="font-semibold">Топ триггеров</div>
+              {topTriggers.length === 0 ? (
+                <div className={`text-sm ${muted} mt-2`}>Нет данных</div>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {topTriggers.map(([id, c]) => (
+                    <li key={id} className="flex justify-between">
+                      <span>{triggerLabel(id)}</span>
+                      <span className={muted}>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className={card}>
+              <div className="font-semibold">Триггеры в дни с алкоголем</div>
+              {topTriggersNS.length === 0 ? (
+                <div className={`text-sm ${muted} mt-2`}>Нет данных</div>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {topTriggersNS.map(([id, c]) => (
+                    <li key={id} className="flex justify-between">
+                      <span>{triggerLabel(id)}</span>
+                      <span className={muted}>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className={card}>
+              <div className="font-semibold">Распределение тяги</div>
+              {cravingDist.length === 0 ? (
+                <div className={`text-sm ${muted} mt-2`}>Нет данных</div>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {cravingDist.map(([lvl, c]) => (
+                    <li key={lvl} className="flex justify-between">
+                      <span>{labelByValue(CRAVING_OPTIONS, lvl)}</span>
+                      <span className={muted}>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className={card}>
+              <div className="font-semibold">Распределение настроения</div>
+              {moodDist.length === 0 ? (
+                <div className={`text-sm ${muted} mt-2`}>Нет данных</div>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {moodDist.map(([lvl, c]) => (
+                    <li key={lvl} className="flex justify-between">
+                      <span>{labelByValue(MOOD_OPTIONS, lvl)}</span>
+                      <span className={muted}>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className={card}>
+              <div className="font-semibold">Кризисные сессии</div>
+              <div className="mt-3 text-sm">
+                Всего: <b>{crisisCount}</b>
               </div>
-              <div className="rounded bg-gray-100 p-2">
-                <div className="text-xs text-gray-500">❌ Срывов</div>
-                <div className="text-lg font-semibold">{notSoberDays}</div>
+              <div className={`text-sm ${muted}`}>
+                Стало легче: <b className="text-[var(--text)]">{crisisBetter}</b> · Не отпустило:{" "}
+                <b className="text-[var(--text)]">{crisisSame}</b>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <section className="rounded border p-3">
-            <div className="font-semibold">Топ триггеров</div>
-            {topTriggers.length === 0 ? (
-              <div className="text-sm text-gray-500 mt-1">Нет данных</div>
-            ) : (
-              <ul className="mt-2 space-y-1 text-sm">
-                {topTriggers.map(([id, c]) => (
-                  <li key={id} className="flex justify-between">
-                    <span>{triggerLabel(id)}</span>
-                    <span className="text-gray-500">{c}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="rounded border p-3">
-            <div className="font-semibold">Триггеры в дни ❌</div>
-            {topTriggersNS.length === 0 ? (
-              <div className="text-sm text-gray-500 mt-1">Нет данных</div>
-            ) : (
-              <ul className="mt-2 space-y-1 text-sm">
-                {topTriggersNS.map(([id, c]) => (
-                  <li key={id} className="flex justify-between">
-                    <span>{triggerLabel(id)}</span>
-                    <span className="text-gray-500">{c}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="rounded border p-3">
-            <div className="font-semibold">Распределение тяги</div>
-            {cravingDist.length === 0 ? (
-              <div className="text-sm text-gray-500 mt-1">Нет данных</div>
-            ) : (
-              <ul className="mt-2 space-y-1 text-sm">
-                {cravingDist.map(([lvl, c]) => (
-                  <li key={lvl} className="flex justify-between">
-                    <span>{labelByValue(CRAVING_OPTIONS, lvl)}</span>
-                    <span className="text-gray-500">{c}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="rounded border p-3">
-            <div className="font-semibold">Распределение настроения</div>
-            {moodDist.length === 0 ? (
-              <div className="text-sm text-gray-500 mt-1">Нет данных</div>
-            ) : (
-              <ul className="mt-2 space-y-1 text-sm">
-                {moodDist.map(([lvl, c]) => (
-                  <li key={lvl} className="flex justify-between">
-                    <span>{labelByValue(MOOD_OPTIONS, lvl)}</span>
-                    <span className="text-gray-500">{c}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="rounded border p-3">
-            <div className="font-semibold">Кризисные сессии</div>
-            <div className="mt-2 text-sm text-gray-700">
-              Всего: <b>{crisisCount}</b>
-            </div>
-            <div className="text-sm text-gray-700">
-              Стало легче: <b>{crisisBetter}</b> · Не отпустило: <b>{crisisSame}</b>
-            </div>
-          </section>
-
-          <button className="w-full rounded bg-gray-200 px-3 py-2 text-sm" onClick={load}>
-            Обновить
-          </button>
-        </>
-      )}
-    </main>
+            <button className={`w-full ${pill}`} onClick={load}>
+              Обновить
+            </button>
+          </>
+        )}
+      </main>
+    </MotionPage>
   );
 }

@@ -8,6 +8,14 @@ import { CRAVING_OPTIONS, MOOD_OPTIONS, TRIGGERS } from "@/domain/labels";
 import { todayKey } from "@/utils/date";
 import { getDayEntry, upsertDayEntry } from "@/db/dayEntries";
 import { validateDayEntryDraft } from "@/domain/validation";
+import { MotionPage } from "@/components/MotionPage";
+
+const card = "rounded-2xl border border-[var(--border)] bg-white/80 backdrop-blur p-4 shadow-sm";
+const btnPrimary =
+  "rounded-xl bg-[var(--accent)] text-white px-4 py-2 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-50";
+const btnSoft =
+  "rounded-xl border border-[var(--border)] bg-white px-4 py-2 text-sm transition active:scale-[0.98]";
+const muted = "text-[var(--muted)]";
 
 function clampNote(s: string) {
   return s.slice(0, 1000);
@@ -81,25 +89,29 @@ export default function Page() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-md p-4">
-        <h1 className="text-xl font-bold">Чек-ин</h1>
-        <p className="text-sm text-gray-500">Загрузка…</p>
-      </main>
+      <MotionPage>
+        <main className="mx-auto max-w-md p-4">
+          <h1 className="text-xl font-bold">Чек-ин</h1>
+          <p className={`text-sm ${muted}`}>Загрузка…</p>
+        </main>
+      </MotionPage>
     );
   }
 
   return (
-    <main className="mx-auto max-w-md p-4">
-      <h1 className="text-xl font-bold">Чек-ин</h1>
-      <p className="text-sm text-gray-500">Дата: {dateKey}</p>
+    <MotionPage>
+      <main className="mx-auto max-w-md p-4 space-y-4">
+        <header className="flex items-baseline justify-between">
+          <h1 className="text-xl font-bold">Чек-ин</h1>
+          <span className={`text-xs ${muted}`}>{dateKey}</span>
+        </header>
 
-      <div className="mt-4 space-y-4">
-        <section className="rounded border p-3">
+        <section className={card}>
           <h2 className="font-semibold">Сегодня трезвый?</h2>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-3 flex gap-2">
             <button
-              className={`flex-1 rounded px-3 py-2 border ${
-                isSober === true ? "bg-black text-white border-black" : "bg-white"
+              className={`flex-1 rounded-xl px-3 py-2 border border-[var(--border)] transition active:scale-[0.98] ${
+                isSober === true ? "bg-[var(--accent)] text-white border-transparent" : "bg-white"
               }`}
               onClick={() => {
                 setIsSober(true);
@@ -109,8 +121,8 @@ export default function Page() {
               Да
             </button>
             <button
-              className={`flex-1 rounded px-3 py-2 border ${
-                isSober === false ? "bg-black text-white border-black" : "bg-white"
+              className={`flex-1 rounded-xl px-3 py-2 border border-[var(--border)] transition active:scale-[0.98] ${
+                isSober === false ? "bg-[var(--accent)] text-white border-transparent" : "bg-white"
               }`}
               onClick={() => {
                 setIsSober(false);
@@ -120,12 +132,13 @@ export default function Page() {
               Нет
             </button>
           </div>
+          <div className={`mt-2 text-xs ${muted}`}>Если был алкоголь — просто отметь факт. Без самоедства.</div>
         </section>
 
-        <section className="rounded border p-3">
+        <section className={card}>
           <h2 className="font-semibold">Тяга</h2>
           <select
-            className="mt-2 w-full rounded border px-3 py-2"
+            className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2"
             value={craving}
             onChange={(e) => setCraving(e.target.value as CravingLevel)}
           >
@@ -137,10 +150,10 @@ export default function Page() {
           </select>
         </section>
 
-        <section className="rounded border p-3">
+        <section className={card}>
           <h2 className="font-semibold">Настроение</h2>
           <select
-            className="mt-2 w-full rounded border px-3 py-2"
+            className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2"
             value={mood}
             onChange={(e) => setMood(e.target.value as MoodLevel)}
           >
@@ -152,16 +165,16 @@ export default function Page() {
           </select>
         </section>
 
-        <section className="rounded border p-3">
+        <section className={card}>
           <h2 className="font-semibold">Триггеры</h2>
-          <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2">
             {TRIGGERS.map((t) => {
               const active = triggers.includes(t.id);
               return (
                 <button
                   key={t.id}
-                  className={`rounded border px-2 py-2 text-sm text-left ${
-                    active ? "bg-black text-white border-black" : "bg-white"
+                  className={`rounded-xl border border-[var(--border)] px-3 py-2 text-sm text-left transition active:scale-[0.98] ${
+                    active ? "bg-[var(--accent-weak)] border-transparent" : "bg-white"
                   }`}
                   onClick={() => toggleTrigger(t.id)}
                 >
@@ -172,32 +185,28 @@ export default function Page() {
           </div>
         </section>
 
-        <section className="rounded border p-3">
+        <section className={card}>
           <h2 className="font-semibold">Заметка</h2>
           <textarea
-            className="mt-2 w-full rounded border px-3 py-2 min-h-[96px]"
+            className="mt-2 w-full rounded-xl border border-[var(--border)] bg-white px-3 py-2 min-h-[110px]"
             value={note}
             onChange={(e) => setNote(clampNote(e.target.value))}
             placeholder="Коротко: что произошло, что почувствовал, что помогло…"
           />
-          <div className="mt-1 text-xs text-gray-500">{note.length}/1000</div>
+          <div className={`mt-1 text-xs ${muted}`}>{note.length}/1000</div>
         </section>
 
-        {msg ? <p className="text-sm text-red-600">{msg}</p> : null}
+        {msg ? <p className="text-sm text-[#B4534E]">{msg}</p> : null}
 
         <div className="flex gap-2">
-          <button
-            disabled={isSober === null}
-            className="flex-1 rounded bg-black text-white px-3 py-2 disabled:opacity-50"
-            onClick={onSave}
-          >
+          <button disabled={isSober === null} className={`${btnPrimary} flex-1`} onClick={onSave}>
             Сохранить
           </button>
-          <button className="flex-1 rounded bg-gray-200 px-3 py-2" onClick={() => router.push("/")}>
+          <button className={`${btnSoft} flex-1`} onClick={() => router.push("/")}>
             Отмена
           </button>
         </div>
-      </div>
-    </main>
+      </main>
+    </MotionPage>
   );
 }

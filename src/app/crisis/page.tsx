@@ -1,93 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { MotionPage } from "@/components/MotionPage";
 import { BreathingCard } from "@/features/crisis/BreathingCard";
 import { SupportCard } from "@/features/crisis/SupportCard";
 import { Match3Game } from "@/features/crisis/Match3Game";
-import { uuid } from "@/utils/uuid";
-import { addCrisisSession } from "@/db/crisisSessions";
-import type { CrisisSession } from "@/domain/types";
-import { useRouter } from "next/navigation";
+
+const card = "rounded-2xl border border-[var(--border)] bg-white/80 backdrop-blur p-4 shadow-sm";
+const muted = "text-[var(--muted)]";
 
 export default function Page() {
-  const router = useRouter();
-
-  const startAtRef = useRef<number>(Date.now());
-  const [usedBreathing, setUsedBreathing] = useState(false);
-  const [usedSupportText, setUsedSupportText] = useState(false);
-  const [usedGame, setUsedGame] = useState(false);
-
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState("");
-
-  useEffect(() => {
-    startAtRef.current = Date.now();
-  }, []);
-
-  async function finish(result: "better" | "same") {
-    setSaving(true);
-    setMsg("");
-
-    const endAt = Date.now();
-    const s: CrisisSession = {
-      id: uuid(),
-      startAt: startAtRef.current,
-      endAt,
-      durationSec: Math.max(1, Math.round((endAt - startAtRef.current) / 1000)),
-      usedBreathing,
-      usedSupportText,
-      usedGame,
-      gameType: usedGame ? "match3" : undefined,
-      result,
-    };
-
-    await addCrisisSession(s);
-    setMsg("Сессия сохранена ✅");
-    setSaving(false);
-
-    // уводим на главную
-    router.push("/");
-  }
+  const [used, setUsed] = useState({ breathing: false, support: false, game: false });
 
   return (
-    <main className="mx-auto max-w-md p-4 space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Кризисный режим</h1>
-        <button className="rounded bg-gray-200 px-3 py-2 text-sm" onClick={() => router.push("/")}>
-          Закрыть
-        </button>
-      </header>
+    <MotionPage>
+      <main className="mx-auto max-w-md p-4 space-y-4">
+        <header>
+          <h1 className="text-xl font-bold">Кризисный режим</h1>
+          <p className={`text-sm ${muted}`}>Сейчас не нужно решать «навсегда». Только «сегодня».</p>
+        </header>
 
-      <div className="text-sm text-gray-600">
-        Сделай один шаг: дыхание, поддержка или мини-игра. Твоя задача — переждать волну.
-      </div>
+        <section className={card}>
+          <div className="font-semibold">План на 10 минут</div>
+          <ol className={`mt-2 list-decimal pl-5 text-sm ${muted} space-y-1`}>
+            <li>Сделай дыхание 60–90 секунд.</li>
+            <li>Прочитай поддержку, переключи фразу.</li>
+            <li>Сыграй короткий раунд “собери 3”.</li>
+          </ol>
+        </section>
 
-      <BreathingCard onUsed={() => setUsedBreathing(true)} />
-      <SupportCard onUsed={() => setUsedSupportText(true)} />
-      <Match3Game onUsed={() => setUsedGame(true)} />
+        <BreathingCard onUsed={() => setUsed((p) => ({ ...p, breathing: true }))} />
+        <SupportCard onUsed={() => setUsed((p) => ({ ...p, support: true }))} />
+        <Match3Game onUsed={() => setUsed((p) => ({ ...p, game: true }))} />
 
-      {msg ? <div className="text-sm">{msg}</div> : null}
-
-      <div className="grid grid-cols-2 gap-2 pt-2">
-        <button
-          disabled={saving}
-          className="rounded bg-black text-white px-3 py-3 font-semibold disabled:opacity-50"
-          onClick={() => finish("better")}
-        >
-          Стало легче
-        </button>
-        <button
-          disabled={saving}
-          className="rounded bg-gray-200 px-3 py-3 font-semibold disabled:opacity-50"
-          onClick={() => finish("same")}
-        >
-          Не отпустило
-        </button>
-      </div>
-
-      <div className="text-xs text-gray-500">
-        Нажатие кнопки сохранит кризисную сессию локально. Никаких данных наружу.
-      </div>
-    </main>
+        <section className={card}>
+          <div className="font-semibold">Отметка</div>
+          <div className={`mt-2 text-sm ${muted}`}>
+            Использовано: дыхание — {used.breathing ? "да" : "нет"}, поддержка — {used.support ? "да" : "нет"}, игра —{" "}
+            {used.game ? "да" : "нет"}.
+          </div>
+        </section>
+      </main>
+    </MotionPage>
   );
 }

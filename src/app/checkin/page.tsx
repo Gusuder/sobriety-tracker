@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { DayEntry } from "@/domain/types";
 import type { CravingLevel, MoodLevel, TriggerId } from "@/domain/enums";
@@ -21,7 +21,7 @@ function clampNote(s: string) {
   return s.slice(0, 1000);
 }
 
-export default function Page() {
+function CheckinInner() {
   const router = useRouter();
   const params = useSearchParams();
   const dateKey = useMemo(() => params.get("date") ?? todayKey(), [params]);
@@ -208,5 +208,20 @@ export default function Page() {
         </div>
       </main>
     </MotionPage>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-md p-4">
+          <h1 className="text-xl font-bold">Чек-ин</h1>
+          <p className="text-sm text-[var(--muted)]">Загрузка…</p>
+        </main>
+      }
+    >
+      <CheckinInner />
+    </Suspense>
   );
 }

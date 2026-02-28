@@ -1,12 +1,15 @@
 import type { CrisisSession } from "@/domain/types";
-import { getDb } from "./client";
+import { apiJson } from "./http";
 
 export async function addCrisisSession(s: CrisisSession): Promise<void> {
-  const db = await getDb();
-  await db.put("crisis_sessions", s);
+  await apiJson<{ ok: true }>("/api/crisis-sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(s),
+  });
 }
 
 export async function listCrisisSessions(): Promise<CrisisSession[]> {
-  const db = await getDb();
-  return db.getAll("crisis_sessions");
+  const data = await apiJson<{ items: CrisisSession[] }>("/api/crisis-sessions", { cache: "no-store" });
+  return data.items ?? [];
 }

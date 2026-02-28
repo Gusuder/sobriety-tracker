@@ -1,23 +1,25 @@
 import type { DayEntry } from "@/domain/types";
-import { getDb } from "./client";
+import { apiJson } from "./http";
 
 export async function getDayEntry(dateKey: string): Promise<DayEntry | undefined> {
-  const db = await getDb();
-  return db.get("day_entries", dateKey);
+  const data = await apiJson<{ item: DayEntry | null }>(`/api/day-entries?dateKey=${encodeURIComponent(dateKey)}`, { cache: "no-store" });
+  return data.item ?? undefined;
 }
 
 export async function upsertDayEntry(entry: DayEntry): Promise<void> {
-  const db = await getDb();
-  await db.put("day_entries", entry);
+  await apiJson<{ ok: true }>("/api/day-entries", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(entry),
+  });
 }
 
 export async function listDayEntries(): Promise<DayEntry[]> {
-  const db = await getDb();
-  return db.getAll("day_entries");
+  const data = await apiJson<{ items: DayEntry[] }>("/api/day-entries", { cache: "no-store" });
+  return data.items ?? [];
 }
 
 export async function listDayEntriesRange(fromKey: string, toKey: string): Promise<DayEntry[]> {
-  const db = await getDb();
-  const range = IDBKeyRange.bound(fromKey, toKey);
-  return db.getAll("day_entries", range);
+  const data = await apiJson<{ items: DayEntry[] }>(`/api/day-entries?from=${encodeURIComponent(fromKey)}&to=${encodeURIComponent(toKey)}`, { cache: "no-store" });
+  return data.items ?? [];
 }

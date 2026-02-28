@@ -64,7 +64,7 @@ export default function Page() {
     })();
   }, []);
 
-  async function onExport() {
+  async function onLogout() {\n    await fetch("/api/auth/logout", { method: "POST" });\n    router.replace("/auth");\n  }\n\n  async function onExport() {
     const payload = await exportBackup();
     downloadJson(`sobriety-export-${new Date().toISOString().slice(0, 10)}.json`, payload);
     setMsg("Экспорт готов ✅");
@@ -186,7 +186,7 @@ export default function Page() {
       <main className="mx-auto max-w-md p-4 space-y-4">
         <header>
           <h1 className="text-xl font-bold">Настройки</h1>
-          <div className={`text-sm ${muted}`}>Локальное хранение · Экспорт/импорт</div>
+          <div className={`text-sm ${muted}`}>Аккаунт (SQLite) · Экспорт/импорт</div>
         </header>
 
         <section className={card}>
